@@ -1,11 +1,12 @@
 # how to call: curl --header "Content-Type: application/json" --request POST --data @debug_data.json  http://localhost:7071/api/http_trigger
 
 import logging
-
+import datetime  # MODIFICATION: added import
 import azure.functions as func
 
-
-def main(req: func.HttpRequest) -> func.HttpResponse:
+# MODIFICATION: the added binding appears as an argument; func.Out[func.QueueMessage]
+# is the appropriate type for an output binding with "type": "queue" (in function.json).
+def main(req: func.HttpRequest, msg: func.Out[func.QueueMessage]) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
     name = req.params.get('name')
@@ -18,9 +19,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             name = req_body.get('name')
 
     if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP triggered function  executed successfully.")
+        # MODIFICATION: write the a message to the message queue, using msg.set
+        msg.set(f"Request made for {name} at {datetime.datetime.now()}")
+
+        return func.HttpResponse(f"Hello {name}!")
     else:
         return func.HttpResponse(
-             "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
-             status_code=200
+             "Please pass a name on the query string or in the request body",
+             status_code=400
         )
